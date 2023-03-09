@@ -14,7 +14,7 @@ Technologies Used (version at time of publication):
 Intended Stack: MERN
 - MongoDB: NoSQL document-oriented database. *To integrate with your existing MongoDB cluster: https://www.mongodb.com/docs/drivers/node/current/
 - Express v4.18.2: Node.js web framework.
-- React: Frontend, component-based UI library.
+- React: Front end, component-based UI library.
 - Node.js v18.14.2: JS runtime environment.
 
 Dependencies: 
