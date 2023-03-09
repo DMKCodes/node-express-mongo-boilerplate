@@ -18,10 +18,11 @@ Intended Stack: MERN
 - Node.js v18.14.2: JS runtime environment.
 
 Dependencies: 
+- cors v2.8.5: Cross-origin remote sharing.
 - jsonwebtoken v9.0.0: JSON Web Token implementation.
 - mongoose v7.0.0: MongoDB asynchronous object modeling.
-- morgan v1.10.0: HTTP request logger middleware.
-- passport v0.4.0: Express-compatible authentication middleware. *Newer versions not yet compatible with JWT Token-Based auth. 
+- morgan v1.10.0: HTTP request logger.
+- passport v0.4.0: Express-compatible authentication. *Newer versions not yet compatible with JWT Token-Based auth. 
 - passport-jwt v4.0.1: Passport authentication using JSON Web Tokens.
 - passport-local v1.0.0: Local authentication for Passport.
 - passport-local-mongoose v7.1.2: Mongoose plugin for passport-local.
