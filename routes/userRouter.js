@@ -3,9 +3,10 @@ const userRouter = express.Router();
 const User = require('../models/user');
 const passport = require('passport');
 const authenticate = require('../authenticate');
+const cors = require('./cors');
 
 userRouter.route('/')
-.get([authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
+.get([cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
     try {
         const allUsers = await User.find();
         res.statusCode = 200;
@@ -15,7 +16,7 @@ userRouter.route('/')
         next(err);
     }
 })
-.delete([authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
+.delete([cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
     try {
         await User.deleteMany();
         res.statusCode = 200;
@@ -27,7 +28,7 @@ userRouter.route('/')
 });
 
 userRouter.route('/:userId')
-.get([authenticate.verifyUser], async (req, res, next) => {
+.get([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
     try {
         if (req.user._id.equals(req.params.userId) || req.user.admin) {
             const user = await User.findById(req.params.userId);
@@ -50,7 +51,7 @@ userRouter.route('/:userId')
         next(err);
     }
 })
-.put([authenticate.verifyUser], async (req, res, next) => {
+.put([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
     try {
         if (req.user._id.equals(req.params.userId) || req.user.admin) {
             const updatedUser = await User.findByIdAndUpdate(req.params.userId, {
@@ -75,7 +76,7 @@ userRouter.route('/:userId')
         next(err);
     }
 })
-.delete([authenticate.verifyUser], async (req, res, next) => {
+.delete([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
     try {
         if (req.user._id.equals(req.params.userId) || req.user.admin) {
             const deletedUser = await User.findByIdAndDelete(req.params.userId);
@@ -99,7 +100,7 @@ userRouter.route('/:userId')
     }
 });
 
-userRouter.post('/signup', (req, res, next) => {
+userRouter.post('/signup', cors.corsWithOptions, (req, res, next) => {
     try {
         User.register(new User(
             // admin incl. below for testing purposes w/ Postman, remove for production
@@ -118,7 +119,7 @@ userRouter.post('/signup', (req, res, next) => {
     }
 });
 
-userRouter.post('/login', passport.authenticate('local'), (req, res, next) => {
+userRouter.post('/login', [cors.corsWithOptions, passport.authenticate('local')], (req, res, next) => {
     try {
         const token = authenticate.getToken({ _id: req.user._id });
         res.statusCode = 200;
