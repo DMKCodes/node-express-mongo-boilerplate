@@ -4,7 +4,7 @@ node-express-mongo-boilerplate is a boilerplate backend intended for use with a 
 
 Installation:
 
-- Initialize an Express application in your project directory ('npm i express-generator', 'express <projectname>') to get initial bin setup.
+- Initialize an Express application in your project directory ('npm i express-generator', 'express [projectname]') to get initial bin setup.
 - Download this repository to your project directory, replacing all files except for the bin directory.
 - Install dependencies with 'npm i'.
 - Test index and user routes with Postman or another API testing platform.
