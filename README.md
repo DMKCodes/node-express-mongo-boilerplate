@@ -31,9 +31,10 @@ Dependencies:
 MongoDB Server Initial Config for Testing: 
 1. Ensure MongoDB is installed on your system, and add path to MongoDB's binaries folder to your System Path variable.
 2. Create a directory outside of your project directory named mongodb, and create a subfolder under it named data.
-3. In a bash terminal, use command 'mongo' to start the Mongo REPL (Read Evaluate Print Loop) shell.
-4. Use command 'db' then command 'use mern-boiler' (or a name of your choice, updating the mongoUrl in config.js accordingly.
-5. Use command 'db.createCollection(users);' to initialize the users collection. 
+3. In a bash terminal in the mongodb directory, use command 'mongod --dbpath=data' to start the MongoDB server.
+4. In a bash terminal, use command 'mongo' to start the Mongo REPL (Read Evaluate Print Loop) shell.
+5. Use command 'db' then command 'use mern-boiler' (or a name of your choice, updating the mongoUrl in config.js accordingly.
+6. Use command 'db.createCollection(users);' to initialize the users collection. 
 
 Notes: 
 - Some configurations are included for ease of initial testing - e.g., new users registered with an explicit admin property.  This should not be put into production as-is for security purposes.
