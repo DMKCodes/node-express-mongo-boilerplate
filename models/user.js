@@ -8,18 +8,11 @@ const userSchema = new Schema({
         default: '',
         required: true
     },
-    firstname: {
-        type: String,
-        default: ''
-    },
-    lastname: {
-        type: String,
-        default: ''
-    },
     admin: {
         type: Boolean,
         default: false
-    }
+    },
+    refreshToken: String
 });
 
 userSchema.plugin(passportLocalMongoose);

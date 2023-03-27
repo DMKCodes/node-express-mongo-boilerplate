@@ -3,131 +3,195 @@ const userRouter = express.Router();
 const User = require('../models/user');
 const passport = require('passport');
 const authenticate = require('../authenticate');
-const cors = require('./cors');
+require('dotenv').config();
 
 userRouter.route('/')
-.get([cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
+.get(authenticate.verifyUser, authenticate.verifyAdmin, async (req, res, next) => {
     try {
         const allUsers = await User.find();
-        res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
-        res.json(allUsers);
+        res.status(200).json({ allUsers, status: 'All users successfully retrieved.' });
     } catch (err) {
-        next(err);
+        res.status(500).json({ error: err.message });
     }
 })
-.delete([cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin], async (req, res, next) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, async (req, res, next) => {
     try {
-        await User.deleteMany();
-        res.statusCode = 200;
+        const deleteResult = await User.deleteMany({ _id: { $ne: req.user._id } });
+
         res.setHeader('Content-Type', 'application/json');
-        res.json({ success: true, status: 'All users successfully deleted.'});
+        if (deleteResult.deletedCount === 0) {
+            res.status(404).json({ status: 'No other users found to delete.' });
+        } else {
+            res.status(200).json({ status: 'All users successfully deleted.'});
+        }
     } catch (err) {
-        next(err);
+        return next(err);
     }
 });
 
 userRouter.route('/:userId')
-.get([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
+.get(authenticate.verifyUser, async (req, res, next) => {
     try {
-        if (req.user._id.equals(req.params.userId) || req.user.admin) {
+        if (req.user._id.equals(req.params.userId) || req.body.admin) {
             const user = await User.findById(req.params.userId);
-            console.log(user);
+
+            res.setHeader('Content-Type', 'application/json');
             if (user) {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(user);
+                res.status(200).json({ user, status: 'User successfully retrieved.' });
             } else {
-                res.statusCode = 404;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('This user does not exist.');
+                res.status(404).json({ error: 'This user does not exist.' });
             }
         } else {
-            const err = new Error('You are not authorized to view this user.');
-            res.statusCode = 403;
-            return next(err);
+            res.setHeader('Content-Type', 'application/json');
+            res.status(403).json({ error: 'You are not authorized to view this user.' });
         }
     } catch (err) {
-        next(err);
+        console.error(err);
+        return next(err);
     }
 })
-.put([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
+.put(authenticate.verifyUser, async (req, res, next) => {
     try {
         if (req.user._id.equals(req.params.userId) || req.user.admin) {
-            const updatedUser = await User.findByIdAndUpdate(req.params.userId, {
-                $set: req.body
-            }, {new: true});
+            if (req.body.newVals?.password) {
+                const newPassword = req.body.newVals.password;
+                const user = await User.findById(req.params.userId);
+                if (user) {
+                    await user.setPassword(newPassword);
+                    const updatedUser = await user.save();
 
-            if (updatedUser) {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json({ success: true, updatedUser, status: 'User successfully updated.' });
+                    res.setHeader('Content-Type', 'application/json');
+                    res.status(200).json({ updatedUser, status: 'Password successfully changed.' });
+                } else {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.status(404).json({ error: 'This user does not exist.' });
+                }
             } else {
-                res.statusCode = 404;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('This user does not exist.');
+                const user = await User.findByIdAndUpdate(req.params.userId, {
+                    $set: req.body.newVals
+                }, {new: true});
+
+                const updatedUser = await user.save();
+
+                res.setHeader('Content-Type', 'application/json');
+                if (updatedUser) {
+                    res.status(200).json({ updatedUser, status: 'User successfully updated.' });
+                } else {
+                    res.status(404).json({ error: 'This user does not exist.' });
+                }
             }
         } else {
-            const err = new Error('You are not authorized to modify this user.');
-            res.statusCode = 403;
-            return next(err);
+            res.setHeader('Content-Type', 'application/json');
+            res.status(403).json({ error: 'You are not authorized to modify this user.'})
         }
     } catch (err) {
-        next(err);
+        return next(err);
     }
 })
-.delete([cors.corsWithOptions, authenticate.verifyUser], async (req, res, next) => {
+.delete(authenticate.verifyUser, async (req, res, next) => {
     try {
         if (req.user._id.equals(req.params.userId) || req.user.admin) {
             const deletedUser = await User.findByIdAndDelete(req.params.userId);
-            
+
+            res.setHeader('Content-Type', 'application/json');
             if (deletedUser) {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json({ success: true, deletedUser, status: 'User successfully deleted.' });
+                res.status(200).json({ deletedUser, status: 'User successfully deleted.' });
             } else {
-                res.statusCode = 404;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('This user does not exist.');
+                res.status(404).json({ error: 'This user does not exist.' });
             }
         } else {
-            const err = new Error('You are not authorized to delete this user.');
-            res.statusCode = 403;
-            return next(err);
+            res.setHeader('Content-Type', 'application/json');
+            res.status(403).json({ error: 'You are not authorized to delete this user.'})
         }
     } catch (err) {
-        next(err);
+        return next(err);
     }
 });
 
-userRouter.post('/signup', cors.corsWithOptions, (req, res, next) => {
+userRouter.post('/register', async (req, res, next) => {
     try {
-        User.register(new User(
-            // admin incl. below for testing purposes w/ Postman, remove for production
-            { username: req.body.username, email: req.body.email, admin: req.body.admin }), 
-            req.body.password,
-            (user) => {
-                passport.authenticate('local')(req, res, () => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json({ success: true, user: user, status: 'Registration successful.' });
-                });
+        const userExists = await User.findOne({ 
+            $or: [{ username: req.body.username}, { email: req.body.email }] 
+        });
+        if (!userExists) {
+            User.register(new User(
+                { 
+                    username: req.body.username, 
+                    email: req.body.email, 
+                    admin: req.body.admin 
+                }), 
+                req.body.password,
+                () => {
+                    passport.authenticate('local')(req, res, () => {
+                        res.setHeader('Content-Type', 'application/json');
+                        res.status(200).json({ status: 'Registration successful.' });
+                    });
+                }
+            );
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.status(409).json({ error: 'This username or email is linked to an existing account. Please try again. Redirecting...' });
+        }
+    } catch (err) {
+        return next(err);
+    }
+});
+
+userRouter.post('/login', async (req, res, next) => {
+    passport.authenticate('local', async (err, user, info) => {
+        if (err) {
+            return next(err);
+        }
+        if (!user) {
+            res.setHeader('Content-Type', 'application/json');
+            console.log(info.message);
+            if (info.message === 'Password or username is incorrect') {
+                res.status(401).json({ error: 'Username or password is incorrect' });
+            } else {
+                res.status(401).json({ error: 'Unknown error during authentication' });
             }
-        );
-    } catch (err) {
-        next(err);
-    }
-});
+        } else {
+            try {
+                const cookies = req.cookies;
+                const newAccessToken = authenticate.getToken({ _id: user._id });
+                const newRefreshToken = authenticate.getRefreshToken({ _id: user._id });
 
-userRouter.post('/login', [cors.corsWithOptions, passport.authenticate('local')], (req, res, next) => {
-    try {
-        const token = authenticate.getToken({ _id: req.user._id });
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.json({ success: true, token: token, status: 'You have successfully logged in.' });
-    } catch (err) {
-        next(err);
-    }
+                if (cookies?.jwt) {
+                    res.clearCookie('jwt', { 
+                        httpOnly: true,
+                        secure: true,
+                        sameSite: 'None', 
+                        maxAge: 24 * 60 * 60 * 1000
+                    });
+                }
+
+                user.refreshToken = newRefreshToken;
+                await user.save();
+
+                res.cookie('jwt', newRefreshToken, { 
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: 'None',
+                    maxAge: 24 * 60 * 60 * 1000
+                });
+
+                res.setHeader('Content-Type', 'application/json');
+                res.status(200).json({ 
+                    user: {
+                        _id: user._id,
+                        username: user.username,
+                        admin: user.admin,
+                        email: user.email
+                    },
+                    token: newAccessToken,
+                    status: 'You have successfully logged in.'
+                });
+            } catch (err) {
+                return next(err);
+            }
+        }
+    })(req, res, next);
 });
 
 module.exports = userRouter;

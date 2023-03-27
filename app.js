@@ -3,15 +3,16 @@ const express = require('express');
 const path = require('path');
 const logger = require('morgan');
 const passport = require('passport');
-const config = require('./config');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 const indexRouter = require('./routes/indexRouter');
+const refreshTokenRouter = require('./routes/refreshTokenRouter');
 const userRouter = require('./routes/userRouter');
 
 // configure mongodb w/ mongoose
 const mongoose = require('mongoose');
-const url = config.mongoUrl;
-const connect = mongoose.connect(url, {
+const connect = mongoose.connect('mongodb://127.0.0.1:27017/mern-boiler', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
@@ -21,15 +22,6 @@ connect.then(() => console.log('Connected to server.'),
 );
 
 const app = express();
-// Example HTTPS secure routing. 
-// app.all('*', (req, res, next) => {
-//     if (req.secure) {
-//       return next();
-//     } else {
-//         console.log(`Redirecting to: https://${req.hostname}:${app.get('secPort')}${req.url}`);
-//         res.redirect(301, `https://${req.hostname}:${app.get('secPort')}${req.url}`);
-//     }
-// });
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -38,10 +30,22 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    methods: 'GET,PUT,POST,DELETE',
+    allowedHeaders: 'Content-Type, Authorization, Access-Control-Allow-Credentials',
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 app.use(passport.initialize());
 
 app.use('/', indexRouter);
+app.use('/refresh', refreshTokenRouter);
 app.use('/users', userRouter);
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -58,8 +62,7 @@ app.use((err, req, res, next) => {
     res.locals.error = req.app.get('env') === 'development' ? err : {};
 
     // render the error page
-    res.status(err.status || 500);
-    res.render('error');
+    res.status(err.status || 500).json({ error: 'An error occurred while processing your request.' });
 });
 
 module.exports = app;
